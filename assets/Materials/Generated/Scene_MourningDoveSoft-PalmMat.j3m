@@ -1,0 +1,26 @@
+Material MyMaterial : Common/MatDefs/Light/Lighting.j3md {
+    MaterialParameters {
+        DiffuseMap : Repeat Scenes/Splashes/diffuse.png
+        GlowColor : 0.0 0.0 0.0 1.0
+        Specular : 0.01 0.01 0.01 1.0
+        Diffuse : 0.64000005 0.64000005 0.64000005 1.0
+        UseMaterialColors : true
+        ParallaxHeight : 0.05
+        Ambient : 0.8 0.8 0.8 1.0
+        Shininess : 12.5
+        SpecularMap : Repeat Scenes/Splashes/specular.png
+        NormalMap : Repeat Scenes/Splashes/normal.png
+        AlphaDiscardThreshold : 0.6
+    }
+    AdditionalRenderState {
+      FaceCull Off
+      Wireframe Off
+      DepthWrite On
+      PolyOffset 0.0 0.0
+      AlphaTestFalloff 0.0
+      Blend Alpha
+      PointSprite Off
+      ColorWrite On
+      DepthTest On
+    }
+}
