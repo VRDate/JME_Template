@@ -59,6 +59,7 @@ public class SplashesState extends AbstractAppState {
         } else {
             if (canSplash == true && delayTime != -1) {
                 splashing = true;
+                app.getAssetManager().removeAssetEventListener(assListener);
             }
         }
     }
@@ -284,4 +285,5 @@ public class SplashesState extends AbstractAppState {
         }
 
     }
+
 }
