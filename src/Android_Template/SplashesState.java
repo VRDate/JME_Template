@@ -48,20 +48,11 @@ public class SplashesState extends AbstractAppState {
     private boolean splashing = false, canSplash = false;
     private AudioNode mourningDoveSFX;
     private AssetEventListener assListener;
+    private LoopInterface loop;
 
     @Override
     public void update(float tpf) {
-        if (splashing == true) {
-            elapsedTime += tpf;
-            if (elapsedTime >= delayTime) {
-                splash();
-            }
-        } else {
-            if (canSplash == true && delayTime != -1) {
-                splashing = true;
-                app.getAssetManager().removeAssetEventListener(assListener);
-            }
-        }
+        loop.loop(tpf);
     }
 
     @Override
@@ -85,11 +76,22 @@ public class SplashesState extends AbstractAppState {
         this.app.getFlyByCamera().setDragToRotate(true);
         this.app.getInputManager().setCursorVisible(true);
 
+        loop = new LoopInterface() {
+            @Override
+            public void loop(float tpf) {
+            }
+        };
+
         assListener = new AssetEventListener() {
             public void assetLoaded(AssetKey key) {
                 //System.out.println("ass loaded " + key);//Common/MatDefs/Misc/Unshaded.frag
                 if (key.getName().equals("Scenes/Splashes/Scene_MourningDoveSoft.j3o") == true) {//"Scenes/Splashes/Scene_MourningDoveSoft.j3o"
-                    canSplash = true;
+                    loop = new LoopInterface() {
+                        @Override
+                        public void loop(float tpf) {
+                            parseScene();
+                        }
+                    };
                 }
             }
 
@@ -107,38 +109,6 @@ public class SplashesState extends AbstractAppState {
 
         mourningDoveSFX = new AudioNode(assetManager, "Sounds/mourningdove.ogg", false);
 
-        Node splashScene = (Node) assetManager.loadModel("Scenes/Splashes/Scene_MourningDoveSoft.j3o");
-        rootNode.attachChild(splashScene);
-
-        SceneGraphVisitor visitor = new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spat) {
-                if (sceneTraversalPhase == 0) {
-                    if (spat.getName().equals("CameraNode")) {
-                        camLocNode = spat;
-                    } else if (spat.getName().equals("CamLookAtNode")) {
-                        camLookAtNode = spat;
-                    } else if (spat.getName().equals("BirdNode")) {
-                        birdNode = spat;
-                    } else if (spat.getName().equals("BirdStartNode")) {
-                        birdStartNode = spat;
-                    } else if (spat.getName().equals("BirdEndNode")) {
-                        birdEndNode = spat;
-                    } else if (spat.getName().equals("Bird-ogremesh")) {
-                        AnimControl animControl = spat.getControl(AnimControl.class);
-                        AnimChannel animChannel = animControl.createChannel();
-                        animChannel.setAnim("Fly");
-                    }
-                }
-            }
-        };
-
-        sceneTraversalPhase = 0;
-        rootNode.depthFirstTraversal(visitor);
-
-        cam.setLocation(camLocNode.getWorldTranslation());
-        cam.lookAt(camLookAtNode.getWorldTranslation(), Vector3f.UNIT_Y);
-
         BitmapFont guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         BitmapText Text = new BitmapText(guiFont);
         Text.setSize(guiFont.getCharSet().getRenderedSize());
@@ -146,33 +116,9 @@ public class SplashesState extends AbstractAppState {
         Text.setText("MourningDoveSoft");
         this.app.getGuiNode().attachChild(Text);
 
-        Vector3f extent = ((BoundingBox) birdNode.getWorldBound()).getExtent(null);
-        float radius = extent.x;
+        Node splashScene = (Node) assetManager.loadModel("Scenes/Splashes/Scene_MourningDoveSoft.j3o");
+        rootNode.attachChild(splashScene);
 
-        if (extent.x < extent.z) {
-            radius = extent.z;
-        }
-
-        /*BCCSceneObjectControl physicsSceneObjectControl = new BCCSceneObjectControl(radius, extent.y, 1f);
-         birdNode.addControl(physicsSceneObjectControl);
-         physicsSceneObjectControl.attachControls();
-         physicsSceneObjectControl.setGravity(new Vector3f(0f, -0.00001f, 0f));
-         //physicsSceneObjectControl.setPhysicsDamping(0f);
-         bulletAppState.getPhysicsSpace().addTickListener(physicsSceneObjectControl);
-         physicsSceneObjectControl.moveTo(birdEndNode.getWorldTranslation(), 1f, true);*/
-
-        /*RBSceneObjectControl physicsSceneObjectControl = new RBSceneObjectControl(new BoxCollisionShape(birdNode.getWorldScale()), 1f);
-         birdNode.addControl(physicsSceneObjectControl);
-         physicsSceneObjectControl.attachControls();
-         physicsSceneObjectControl.setGravity(new Vector3f(0f, -0.00001f, 0f));
-         bulletAppState.getPhysicsSpace().addTickListener(physicsSceneObjectControl);
-
-         physicsSceneObjectControl.moveTo(birdEndNode.getWorldTranslation(), 1f, true);*/
-
-        SceneObjectControl sceneObjectControl = new SceneObjectControl();
-        birdNode.addControl(sceneObjectControl);
-
-        delayTime = 0f;
     }
 
     public void splashMDS() {
@@ -271,7 +217,7 @@ public class SplashesState extends AbstractAppState {
             });
 
             splashing = false;
-            
+
             app.getAssetManager().removeAssetEventListener(assListener);
 
             stateManager.detach(this);
@@ -286,4 +232,79 @@ public class SplashesState extends AbstractAppState {
 
     }
 
+    private void parseScene() {
+
+        if (rootNode.getQuantity() > 0) {
+
+            app.getAssetManager().removeAssetEventListener(assListener);
+
+            SceneGraphVisitor visitor = new SceneGraphVisitor() {
+                @Override
+                public void visit(Spatial spat) {//System.out.println("visiting " + spat.getName());
+                    if (sceneTraversalPhase == 0) {
+                        if (spat.getName().equals("CameraNode")) {
+                            camLocNode = spat;
+                        } else if (spat.getName().equals("CamLookAtNode")) {
+                            camLookAtNode = spat;
+                        } else if (spat.getName().equals("BirdNode")) {
+                            birdNode = spat;
+                        } else if (spat.getName().equals("BirdStartNode")) {
+                            birdStartNode = spat;
+                        } else if (spat.getName().equals("BirdEndNode")) {
+                            birdEndNode = spat;
+                        } else if (spat.getName().equals("Bird-ogremesh")) {
+                            AnimControl animControl = spat.getControl(AnimControl.class);
+                            AnimChannel animChannel = animControl.createChannel();
+                            animChannel.setAnim("Fly");
+                        }
+                    }
+                }
+            };
+
+            sceneTraversalPhase = 0;
+            rootNode.depthFirstTraversal(visitor);
+
+            cam.setLocation(camLocNode.getWorldTranslation());
+            cam.lookAt(camLookAtNode.getWorldTranslation(), Vector3f.UNIT_Y);
+
+            /*Vector3f extent = ((BoundingBox) birdNode.getWorldBound()).getExtent(null);
+            float radius = extent.x;
+
+            if (extent.x < extent.z) {
+                radius = extent.z;
+            }*/
+
+            /*BCCSceneObjectControl physicsSceneObjectControl = new BCCSceneObjectControl(radius, extent.y, 1f);
+             birdNode.addControl(physicsSceneObjectControl);
+             physicsSceneObjectControl.attachControls();
+             physicsSceneObjectControl.setGravity(new Vector3f(0f, -0.00001f, 0f));
+             //physicsSceneObjectControl.setPhysicsDamping(0f);
+             bulletAppState.getPhysicsSpace().addTickListener(physicsSceneObjectControl);
+             physicsSceneObjectControl.moveTo(birdEndNode.getWorldTranslation(), 1f, true);*/
+
+            /*RBSceneObjectControl physicsSceneObjectControl = new RBSceneObjectControl(new BoxCollisionShape(birdNode.getWorldScale()), 1f);
+             birdNode.addControl(physicsSceneObjectControl);
+             physicsSceneObjectControl.attachControls();
+             physicsSceneObjectControl.setGravity(new Vector3f(0f, -0.00001f, 0f));
+             bulletAppState.getPhysicsSpace().addTickListener(physicsSceneObjectControl);
+
+             physicsSceneObjectControl.moveTo(birdEndNode.getWorldTranslation(), 1f, true);*/
+
+            SceneObjectControl sceneObjectControl = new SceneObjectControl();
+            birdNode.addControl(sceneObjectControl);
+
+            delayTime = 0f;
+
+            loop = new LoopInterface() {
+                @Override
+                public void loop(float tpf) {
+                    elapsedTime += tpf;
+                    if (elapsedTime >= delayTime) {
+                        splash();
+                    }
+                }
+            };
+        }
+
+    }
 }
